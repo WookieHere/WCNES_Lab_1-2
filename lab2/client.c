@@ -25,9 +25,13 @@ static void recv(const void *data, uint16_t len,
   const linkaddr_t *src, const linkaddr_t *dest) {
 }
 
+static bool temp_flag = false;
+static bool button_flag = false;
+
 /* Our main process. */
 PROCESS_THREAD(client_process, ev, data) {
-	static char payload[] = "hej";
+	static char button_payload[] = "b";
+	static char temp_payload[] = "t";
 
 	PROCESS_BEGIN();
 
@@ -35,8 +39,6 @@ PROCESS_THREAD(client_process, ev, data) {
 	SENSORS_ACTIVATE(button_sensor);
 
 	/* Initialize NullNet */
-	nullnet_buf = (uint8_t *)&payload;
-	nullnet_len = sizeof(payload);
 	nullnet_set_input_callback(recv);
 
 	/* Loop forever. */
@@ -45,13 +47,29 @@ PROCESS_THREAD(client_process, ev, data) {
 		PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_POLL);
 
 		leds_toggle(LEDS_RED);
-		/* Copy the string "hej" into the packet buffer. */
-		memcpy(nullnet_buf, &payload, sizeof(payload));
-    nullnet_len = sizeof(payload);
+		if (button_flag) {
+			nullnet_buf = (uint8_t *)&button_payload;
+			nullnet_len = sizeof(button_payload);
+			/* Copy the string "b" into the packet buffer. */
+			memcpy(nullnet_buf, &button_payload, sizeof(button_payload));
 
-		/* Send the content of the packet buffer using the
-		 * broadcast handle. */
-		NETSTACK_NETWORK.output(NULL);
+			/* Send the content of the packet buffer using the
+			 * broadcast handle. */
+			NETSTACK_NETWORK.output(NULL);
+			button_flag = false;
+		}
+		
+		if (temp_flag) {
+			nullnet_buf = (uint8_t *)&temp_payload;
+			nullnet_len = sizeof(temp_payload);
+			/* Copy the string "b" into the packet buffer. */
+			memcpy(nullnet_buf, &temp_payload, sizeof(temp_payload));
+
+			/* Send the content of the packet buffer using the
+			 * broadcast handle. */
+			NETSTACK_NETWORK.output(NULL);
+			temp_flag = false;
+		}
 	}
 
 	PROCESS_END();
