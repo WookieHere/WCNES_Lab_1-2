@@ -20,8 +20,8 @@ AUTOSTART_PROCESSES(&basestation_process, &led_process);
  */
 static void recv(const void *data, uint16_t len,
   const linkaddr_t *src, const linkaddr_t *dest) {
-    leds_off(LEDS_ALL);
     leds_on(LEDS_ALL);
+	process_poll(&led_process);
 }
 
 /* Our main process. */
