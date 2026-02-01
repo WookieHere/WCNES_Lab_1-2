@@ -5,12 +5,14 @@
 #include "dev/leds.h"
 #include "net/netstack.h"
 #include "net/nullnet/nullnet.h"
+#include "dev/sensor/sht11/sht11-sensor.h"
 
 /* Declare our "main" process, the client process*/
 PROCESS(client_process, "Clicker client");
+PROCESS(remote_sht11_process, "SHT11 test");
 /* The client process should be started automatically when
  * the node has booted. */
-AUTOSTART_PROCESSES(&client_process);
+AUTOSTART_PROCESSES(&client_process, &remote_sht11_process);
 
 /* Callback function for received packets.
  *
@@ -39,14 +41,8 @@ PROCESS_THREAD(client_process, ev, data) {
 
 	/* Loop forever. */
 	while (1) {
-		/* Wait until an event occurs. If the event has
-		 * occured, ev will hold the type of event, and
-		 * data will have additional information for the
-		 * event. In the case of a sensors_event, data will
-		 * point to the sensor that caused the event.
-		 * Here we wait until the button was pressed. */
-		PROCESS_WAIT_EVENT_UNTIL(ev == sensors_event &&
-			data == &button_sensor);
+		//wait until temp sensor triggers a warning
+		PROCESS_WAIT_EVENT_UNTIL(ev == PROCESS_EVENT_POLL);
 
 		leds_toggle(LEDS_RED);
 		/* Copy the string "hej" into the packet buffer. */
@@ -60,3 +56,27 @@ PROCESS_THREAD(client_process, ev, data) {
 
 	PROCESS_END();
 }
+
+/*---------------------------------------------------------------------------*/
+static struct etimer et;
+/*---------------------------------------------------------------------------*/
+PROCESS_THREAD(remote_sht11_process, ev, data)
+{
+  int16_t temperature;
+
+  PROCESS_BEGIN();
+  SENSORS_ACTIVATE(sht11_sensor);
+
+  /* Let it spin and read sensor data */
+  while(1) {
+    etimer_set(&et, CLOCK_SECOND/100); //hundredth of a second wait
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+    temperature = sht11_sensor.value(SHT11_SENSOR_TEMP);;
+    printf("Temperature %02d.%02d ºC\n ", temperature / 100, temperature % 100);
+	if (temperature > 2300) {
+	  process_poll(&client_process); //tell the client process to send alert
+	}
+  }
+  PROCESS_END();
+}
+/*---------------------------------------------------------------------------*/
