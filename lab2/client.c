@@ -35,8 +35,7 @@ PROCESS_THREAD(client_process, ev, data) {
 
 	PROCESS_BEGIN();
 
-	/* Activate the button sensor. */
-	SENSORS_ACTIVATE(button_sensor);
+
 
 	/* Initialize NullNet */
 	nullnet_set_input_callback(recv);
@@ -92,8 +91,28 @@ PROCESS_THREAD(remote_sht11_process, ev, data)
     temperature = sht11_sensor.value(SHT11_SENSOR_TEMP);;
     printf("Temperature %02d.%02d ºC\n ", temperature / 100, temperature % 100);
 	if (temperature > 2300) {
+	  temp_flag = true;
 	  process_poll(&client_process); //tell the client process to send alert
 	}
+  }
+  PROCESS_END();
+}
+/*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+PROCESS_THREAD(button_process, ev, data)
+{
+
+  PROCESS_BEGIN();
+  /* Activate the button sensor. */
+  SENSORS_ACTIVATE(button_sensor);
+
+  /* Let it spin and read sensor data */
+  while(1) {
+	PROCESS_WAIT_EVENT_UNTIL(ev == sensors_event && data == &button_sensor);
+    printf("button press detected\n");
+	button_flag = true;
+	process_poll(&client_process); //tell the client process to send alert
   }
   PROCESS_END();
 }
