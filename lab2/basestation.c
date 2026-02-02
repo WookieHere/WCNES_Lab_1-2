@@ -22,6 +22,7 @@ static bool temp_flag = false;
 static bool button_flag = false;
 static void recv(const void *data, uint16_t len,
   const linkaddr_t *src, const linkaddr_t *dest) {
+	printf("message received\n");
 	if (*(char *)data == 't') {
 		leds_on(0b1); // temperature warning
 		temp_flag = true;
